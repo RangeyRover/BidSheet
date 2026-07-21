@@ -100,6 +100,10 @@ npm run dist:linux     # Linux .AppImage and .deb
 
 Prebuilt installers are available on the [Releases](https://github.com/Person810/BidSheet/releases) page.
 
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for current priorities and what's planned next.
+
 ## Contributing
 
 Contributions welcome. This project is in early development.

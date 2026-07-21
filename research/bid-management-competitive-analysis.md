@@ -295,6 +295,10 @@ via cloud project folders). BidSheet has no per-job file story at all:
 
 ## 6. Recommendation — prioritized roadmap
 
+> **Superseded 2026-07-21:** this section is preserved as the original
+> reasoning, but per-item status and current priorities now live in the
+> top-level [`ROADMAP.md`](../ROADMAP.md).
+
 Ordered by **value to a small utility sub ÷ effort**, grounded in what BidSheet can
 realistically build on its current schema.
 
