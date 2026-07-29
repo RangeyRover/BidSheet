@@ -1,4 +1,3 @@
-import type { CalcBreakdown } from '../../../shared/calcExplain';
 
 export interface HDDInput {
   location: 'metro' | 'regional';
@@ -8,7 +7,7 @@ export interface HDDInput {
   includePits?: boolean;
   marginPct?: number;
   locale?: string;
-  customRates?: any;
+  customRates?: typeof DEFAULT_RATES;
   boresPerPit?: number;
   isBundle?: boolean;
   additionalPipes?: Array<{ pipeSizeIn: number; pipeMaterialId: number | string | null }>;
@@ -191,7 +190,7 @@ export function calculateHDD(input: HDDInput): HDDOutput {
     const lowCalc = calcForDN(lowDN, isSubsequent);
     const highCalc = k === 0 ? lowLow(lowCalc) : calcForDN(highDN, isSubsequent);
 
-    function lowLow(val: any) {
+    function lowLow(val: ReturnType<typeof calcForDN>) {
       return val;
     }
 
@@ -215,11 +214,11 @@ export function calculateHDD(input: HDDInput): HDDOutput {
 
   let accumulatedTotalPrice = mainLowCalc.sellPrice;
   let accumulatedDays = mainLowCalc.days;
-  let accumulatedEstab = mainLowCalc.estab;
+  const accumulatedEstab = mainLowCalc.estab;
   let accumulatedCrewRigTotal = mainLowCalc.crewRigTotal;
   let accumulatedRawFluids = mainLowCalc.rawFluidsCost;
   let accumulatedSlurry = mainLowCalc.slurryDisposalCost;
-  let accumulatedPit = mainLowCalc.pitExcavatorCost;
+  const accumulatedPit = mainLowCalc.pitExcavatorCost;
   let accumulatedDirectCost = mainLowCalc.directCost;
 
   if (input.additionalPipes && input.additionalPipes.length > 0) {

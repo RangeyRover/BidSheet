@@ -306,10 +306,10 @@ describe('sample-catalog management', () => {
 describe('migration v51 — HDD columns and rates', () => {
   it('adds hdd_rates_json to app_settings, and hdd columns to trench_profiles', () => {
     const db = dbAtVersion(51);
-    const settingsCols = (db.prepare('PRAGMA table_info(app_settings)').all() as any[]).map((c) => c.name);
+    const settingsCols = (db.prepare('PRAGMA table_info(app_settings)').all() as { name: string }[]).map((c) => c.name);
     expect(settingsCols).toContain('hdd_rates_json');
 
-    const profileCols = (db.prepare('PRAGMA table_info(trench_profiles)').all() as any[]).map((c) => c.name);
+    const profileCols = (db.prepare('PRAGMA table_info(trench_profiles)').all() as { name: string }[]).map((c) => c.name);
     expect(profileCols).toEqual(
       expect.arrayContaining([
         'method', 'hdd_location', 'hdd_include_slurry', 'hdd_include_pits',

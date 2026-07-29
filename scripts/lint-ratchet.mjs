@@ -34,7 +34,7 @@ function runEslint() {
     return execFileSync(
       'npx',
       ['eslint', 'src/**/*.{ts,tsx}', 'test/**/*.ts', '-f', 'json'],
-      { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'] },
+      { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'], shell: true },
     );
   } catch (err) {
     if (typeof err.stdout === 'string' && err.stdout.trim().startsWith('[')) return err.stdout;

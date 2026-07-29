@@ -303,7 +303,7 @@ function Scene({ model, run, groundSampler, scalePxPerFt, hasBench, isHDD, inclu
           const pitW = run.trenchWidthFt || 3.0;
           const pitL = run.benchWidthFt || 6.0;
           const startPitD = run.startDepthFt || 5.0;
-          const endPitD = (model as any).endPitDepthFt ?? (startPitD / 3);
+          const endPitD = (model as Trench3DModel & { endPitDepthFt?: number }).endPitDepthFt ?? (startPitD / 3);
 
           return (
             <>
@@ -372,7 +372,7 @@ export function Trench3DView({ run, scalePxPerFt, groundSampler, height = 520, i
   const [resetKey, setResetKey] = useState(0);
 
   const model = useMemo(() => {
-    const m = buildRunGeometry(run, scalePxPerFt, groundSampler);
+    const m = buildRunGeometry(run, scalePxPerFt, groundSampler) as (Trench3DModel & { endPitDepthFt?: number }) | null;
     if (m && isHDD) {
       const startPitD = run.startDepthFt || 5.0;
       const hasGrade = run.gradePct && run.gradePct !== 0;
@@ -391,17 +391,35 @@ export function Trench3DView({ run, scalePxPerFt, groundSampler, height = 520, i
           endSeg.invertB = endSeg.groundB - endPitD;
           endSeg.bottomB = endSeg.invertB - m.beddingDepthFt;
         }
-        (m as any).endPitDepthFt = endPitD;
+        m.endPitDepthFt = endPitD;
       }
 
       const pipeRadiusFt = m.pipeDiaFt / 2;
       if (m.pipeCenterline.length > 0 && m.segments.length > 0) {
         m.pipeCenterline[0].y = (m.segments[0].groundA - startPitD) + pipeRadiusFt;
-        m.pipeCenterline[m.pipeCenterline.length - 1].y = (m.segments[m.segments.length - 1].groundB - (m as any).endPitDepthFt) + pipeRadiusFt;
+        m.pipeCenterline[m.pipeCenterline.length - 1].y = (m.segments[m.segments.length - 1].groundB - (m.endPitDepthFt ?? 0)) + pipeRadiusFt;
       }
     }
     return m;
   }, [run, scalePxPerFt, groundSampler, isHDD]);
+
+  const additionalPipes3D = useMemo(() => {
+    const jsonStr = run.hddAdditionalPipesJson || run.backfillType;
+    if (!jsonStr || !jsonStr.startsWith('[')) return [];
+    try {
+      const list = JSON.parse(jsonStr) as Array<{ pipeSizeIn: number; pipeMaterialId: number | string | null }>;
+      return list.map((item) => {
+        const sizeIn = item.pipeSizeIn || 3.0;
+        const sizeFt = metric ? (sizeIn / 25.4) / 12 : sizeIn / 12;
+        return {
+          radius: Math.max(sizeFt / 2, 0.05),
+          color: '#e28743', // orange shade for additional bores to contrast with green main
+        };
+      });
+    } catch {
+      return [];
+    }
+  }, [run.hddAdditionalPipesJson, run.backfillType, metric]);
 
   if (!model) {
     return <p className="text-muted">This run has no measurable length yet.</p>;
@@ -421,24 +439,6 @@ export function Trench3DView({ run, scalePxPerFt, groundSampler, height = 520, i
 
   const hasBench = run.benchWidthFt > 0;
   const benchWidthFt = run.benchWidthFt;
-
-  const additionalPipes3D = useMemo(() => {
-    const jsonStr = run.hddAdditionalPipesJson || run.backfillType;
-    if (!jsonStr || !jsonStr.startsWith('[')) return [];
-    try {
-      const list = JSON.parse(jsonStr) as Array<{ pipeSizeIn: number; pipeMaterialId: number | string | null }>;
-      return list.map((item) => {
-        const sizeIn = item.pipeSizeIn || 3.0;
-        const sizeFt = metric ? (sizeIn / 25.4) / 12 : sizeIn / 12;
-        return {
-          radius: Math.max(sizeFt / 2, 0.05),
-          color: '#e28743', // orange shade for additional bores to contrast with green main
-        };
-      });
-    } catch {
-      return [];
-    }
-  }, [run.hddAdditionalPipesJson, run.backfillType, metric]);
 
   return (
     <div>

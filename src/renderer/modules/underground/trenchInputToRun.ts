@@ -17,7 +17,7 @@ export const TRENCH_PREVIEW_SCALE_PX_PER_FT = 10;
  * ground at 0, invert falling from -startDepthFt at the entered grade —
  * which is exactly what "Starting Depth" + "Grade" mean in this calculator.
  */
-export function trenchInputToTakeoffRun(input: TrenchInput, label = ''): TakeoffRun {
+export function trenchInputToTakeoffRun(input: TrenchInput & { hddAdditionalPipesJson?: string | null }, label = ''): TakeoffRun {
   const lengthPx = Math.max(input.runLengthLF, 1) * TRENCH_PREVIEW_SCALE_PX_PER_FT;
   return {
     id: -1,
@@ -41,6 +41,6 @@ export function trenchInputToTakeoffRun(input: TrenchInput, label = ''): Takeoff
       { x: 0, y: 0 },
       { x: lengthPx, y: 0 },
     ],
-    hddAdditionalPipesJson: (input as any).hddAdditionalPipesJson || null,
+    hddAdditionalPipesJson: input.hddAdditionalPipesJson || null,
   };
 }

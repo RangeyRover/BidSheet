@@ -966,7 +966,7 @@ function migrateV51(db: Database.Database): void {
   const addColumn = (table: string, col: string, def: string) => {
     try {
       db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`);
-    } catch (e) {
+    } catch {
       // ignore if column already exists
     }
   };

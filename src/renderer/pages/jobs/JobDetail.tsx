@@ -613,8 +613,8 @@ export function JobDetail({ jobId, onBack, onOpenJob, onOpenTakeoff }: JobDetail
       }
 
       // Additional pipes in the same run/bundle
-      if ((p as any).additionalPipes && (p as any).additionalPipes.length > 0) {
-        for (const addPipe of (p as any).additionalPipes) {
+      if (p.additionalPipes && p.additionalPipes.length > 0) {
+        for (const addPipe of p.additionalPipes) {
           const addKey = addPipe.pipeMaterialId != null ? String(addPipe.pipeMaterialId) : addPipe.pipeMaterialName;
           const addEntry = pipeByKey.get(addKey);
           if (addEntry) {

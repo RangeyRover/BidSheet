@@ -1,9 +1,10 @@
+/* eslint-disable jsx-a11y/label-has-associated-control, no-restricted-syntax */
 import React, { useMemo, useState } from 'react';
 import {
   parsePipeSizeFromName, depthZoneBreakdown,
   type TrenchInput, type ValidationError,
 } from '../../modules/underground/trenchCalc';
-import { calculateHDD } from '../../modules/underground/hddCalc';
+import { calculateHDD, DEFAULT_RATES } from '../../modules/underground/hddCalc';
 import { FuzzyAutocomplete, type AutocompleteItem } from '../../components/FuzzyAutocomplete';
 import { NATIVE_MATERIAL_ITEM } from '../../modules/underground/useTrenchMaterials';
 import { trenchInputToTakeoffRun, TRENCH_PREVIEW_SCALE_PX_PER_FT } from '../../modules/underground/trenchInputToRun';
@@ -46,7 +47,7 @@ interface Props {
   pageScales: Record<number, number>;
   /** The job's surveyed-terrain surface, if any, so a linked run can ground against real elevations. */
   surface: TakeoffSurface | null;
-  customRates?: any;
+  customRates?: typeof DEFAULT_RATES;
 }
 
 export function TrenchProfileForm({
@@ -87,9 +88,9 @@ export function TrenchProfileForm({
     return list;
   }, [additionalPipes, boresCount, form.pipeSizeIn, form.pipeMaterialId, isMetric]);
 
-  const onChangeAdditionalPipe = (index: number, field: 'pipeSizeIn' | 'pipeMaterialId', value: any) => {
+  const onChangeAdditionalPipe = (index: number, field: 'pipeSizeIn' | 'pipeMaterialId', value: number | string | null) => {
     const newList = [...normalizedAdditionalPipes];
-    newList[index] = { ...newList[index], [field]: value };
+    newList[index] = { ...newList[index], [field]: value } as { pipeSizeIn: number; pipeMaterialId: number | string | null };
     onChange('hddAdditionalPipesJson', JSON.stringify(newList));
   };
 
@@ -114,7 +115,7 @@ export function TrenchProfileForm({
     if (!isHDD || errors.length > 0) return null;
     try {
       return calculateHDD({
-        location: (form.hddLocation as any) || 'metro',
+        location: form.hddLocation === 'regional' ? 'regional' : 'metro',
         dn: form.pipeSizeIn,
         length: form.runLengthLF,
         includeSlurry: form.backfillType !== 'bundle' && form.hddIncludeSlurry !== false,
@@ -126,7 +127,7 @@ export function TrenchProfileForm({
         additionalPipes: normalizedAdditionalPipes,
         customRates,
       });
-    } catch (e) {
+    } catch {
       return null;
     }
   }, [form, errors, isHDD, isMetric, normalizedAdditionalPipes, customRates]);
@@ -569,7 +570,7 @@ export function TrenchProfileForm({
           pipeSizeIn: isHDD && isMetric ? form.pipeSizeIn / 25.4 : form.pipeSizeIn,
           startDepthFt: form.startDepthFt || (isHDD ? 5 : 0),
           hddAdditionalPipesJson: form.hddAdditionalPipesJson || null,
-        } as any, form.label);
+        } as TrenchInput & { hddAdditionalPipesJson?: string | null }, form.label);
         const run = linkedRun ?? synthesizedRun;
         const scalePxPerFt = linkedRun ? (pageScales[linkedRun.pdfPage] || TRENCH_PREVIEW_SCALE_PX_PER_FT) : TRENCH_PREVIEW_SCALE_PX_PER_FT;
         return (

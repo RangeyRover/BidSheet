@@ -12,6 +12,7 @@ import type { TakeoffRun } from '../../modules/underground/plan-takeoff/types';
 import { useUnitSystem } from '../../stores/units-store';
 import { unitLabel, convertQty, formatPipeSize, fromDisplay } from '../../../shared/unitSystem';
 import { formatCurrency } from './helpers';
+import type { AppSettingsRow } from '../../../shared/types/ipc';
 
 export interface ConvertToBidProfile {
   label: string;
@@ -78,6 +79,18 @@ const METRIC_DEFAULTS = {
   beddingDepthFt: fromDisplay(0.15, 'ft', 'metric'),
 };
 
+interface ComputedTrenchRow {
+  method?: string;
+  pipeLF: number;
+  excavationCY: number;
+  beddingCY: number;
+  backfillCY: number;
+  tracerWireLF: number;
+  warningTapeLF: number;
+  avgDepthFt: number;
+  totalEstimate?: number;
+}
+
 function rowToInput(row: any): TrenchInput {
   return {
     pipeSizeIn: row.pipe_size_in,
@@ -97,7 +110,7 @@ export function TrenchProfileList({ jobId, onConvertToBid, onProfileCountChange 
   const system = useUnitSystem();
   const defaults = system === 'metric' ? METRIC_DEFAULTS : DEFAULTS;
   const [profiles, setProfiles] = useState<any[]>([]);
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<AppSettingsRow | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...defaults });
   const [confirmState, setConfirmState] = useState<{ msg: string; onYes: () => void; yesLabel?: string; variant?: 'danger' | 'neutral' } | null>(null);
@@ -112,13 +125,13 @@ export function TrenchProfileList({ jobId, onConvertToBid, onProfileCountChange 
   const { surface } = useSurfaceManager({ jobId });
 
   useEffect(() => {
-    window.api.listTakeoffRuns(jobId).then(setTakeoffRuns);
-    window.api.listPageScales(jobId).then((rows: { page_number: number; scale_px_per_ft: number }[]) => {
+    void window.api.listTakeoffRuns(jobId).then(setTakeoffRuns);
+    void window.api.listPageScales(jobId).then((rows: { page_number: number; scale_px_per_ft: number }[]) => {
       const map: Record<number, number> = {};
       rows.forEach((r) => { map[r.page_number] = r.scale_px_per_ft; });
       setPageScales(map);
     });
-    window.api.getSettings().then(setSettings);
+    void window.api.getSettings().then(setSettings);
   }, [jobId]);
 
   const loadProfiles = useCallback(async () => {
@@ -127,7 +140,7 @@ export function TrenchProfileList({ jobId, onConvertToBid, onProfileCountChange 
     onProfileCountChange?.(rows.length);
   }, [jobId, onProfileCountChange]);
 
-  useEffect(() => { loadProfiles(); }, [loadProfiles]);
+  useEffect(() => { void loadProfiles(); }, [loadProfiles]);
 
   const computed = useMemo(() => {
     const customRates = settings?.hdd_rates_json ? JSON.parse(settings.hdd_rates_json) : undefined;
@@ -146,7 +159,9 @@ export function TrenchProfileList({ jobId, onConvertToBid, onProfileCountChange 
           if (jsonStr) {
             try {
               additionalPipes = JSON.parse(jsonStr);
-            } catch {}
+            } catch {
+              // ignore parse errors
+            }
           }
           const calc = calculateHDD({
             location: row.hdd_location || 'metro',
@@ -180,7 +195,7 @@ export function TrenchProfileList({ jobId, onConvertToBid, onProfileCountChange 
         const errors = validateInput(input);
         return errors.length === 0 ? calculateTrench(input) : null;
       }
-    }) as any[];
+    }) as Array<ComputedTrenchRow | null>;
   }, [profiles, system, settings]);
 
   const totals = useMemo(() => {
@@ -189,7 +204,7 @@ export function TrenchProfileList({ jobId, onConvertToBid, onProfileCountChange 
       if (!out) continue;
       t.pipeLF += out.pipeLF;
       if (out.method === 'hdd') {
-        t.hddTotal += (out as any).totalEstimate || 0;
+        t.hddTotal += out.totalEstimate || 0;
       } else {
         t.excavationCY += out.excavationCY;
         t.beddingCY += out.beddingCY;
@@ -307,8 +322,8 @@ export function TrenchProfileList({ jobId, onConvertToBid, onProfileCountChange 
       hddIncludeSlurry: form.hddIncludeSlurry !== false,
       hddIncludePits: form.hddIncludePits !== false,
       hddMarginPct: form.hddMarginPct ?? 15,
-      hddBoresPerPit: isHDD ? ((form as any).hddBoresPerPit ?? 1) : 1,
-      hddAdditionalPipesJson: isHDD ? ((form as any).hddAdditionalPipesJson || null) : null,
+      hddBoresPerPit: isHDD ? ((form as TrenchInput & { hddBoresPerPit?: number }).hddBoresPerPit ?? 1) : 1,
+      hddAdditionalPipesJson: isHDD ? ((form as TrenchInput & { hddAdditionalPipesJson?: string | null }).hddAdditionalPipesJson || null) : null,
     });
     setEditingId(null);
     await loadProfiles();
@@ -372,7 +387,9 @@ export function TrenchProfileList({ jobId, onConvertToBid, onProfileCountChange 
                   pipeMaterialName: mat?.label || 'Pipe',
                 };
               });
-            } catch {}
+            } catch {
+              // ignore parse errors
+            }
           }
 
           data.push({
@@ -396,7 +413,7 @@ export function TrenchProfileList({ jobId, onConvertToBid, onProfileCountChange 
             hddIncludeSlurry: row.hdd_include_slurry !== 0,
             hddIncludePits: row.hdd_include_pits !== 0,
             hddMarginPct: row.hdd_margin_pct ?? 15,
-            totalEstimate: (out as any).totalEstimate,
+            totalEstimate: out.totalEstimate,
             additionalPipes: additionalPipes.length > 0 ? additionalPipes : undefined,
           });
         });
@@ -453,7 +470,7 @@ export function TrenchProfileList({ jobId, onConvertToBid, onProfileCountChange 
                     <td className="text-right">{pipeDisplay(row)}</td>
                     {isHDD ? (
                       <td colSpan={4} className="text-right" style={{ fontWeight: 600, color: 'var(--accent)' }}>
-                        HDD Estimate: {out ? formatCurrency((out as any).totalEstimate) : '--'}
+                        HDD Estimate: {out && out.totalEstimate !== undefined ? formatCurrency(out.totalEstimate) : '--'}
                       </td>
                     ) : (
                       <>
